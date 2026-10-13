@@ -1,59 +1,62 @@
-# Lecas Merch — independente.mente
+# independente.mente — Creative Fashion Studio
 
-**Creative Fashion Studio** para explorar T-shirts a partir de duas artes originais do projeto musical *independente.mente*.
+Aplicação web estática com editor de T-shirts, duas artes originais, showroom e exportação. Código em HTML, CSS e JavaScript sem dependências de compilação.
 
-## Estado
+## Como abrir (recomendado)
 
-Este repositório foi preparado para receber a aplicação HTML/CSS/JavaScript e as três imagens originais. A importação pode ser feita carregando **um único ZIP** com o nome exato `independente-mente-github-pages.zip` na raiz do repositório.
+1. Extrai o ZIP para uma pasta.
+2. Abre um terminal **dentro da pasta** `independente-mente-studio`.
+3. Executa `python -m http.server 8000` (ou `python3 -m http.server 8000`).
+4. No navegador, abre **http://localhost:8000**.
 
-O GitHub Actions irá verificar e extrair esse ZIP, validar o JavaScript e guardar os ficheiros do site na branch `main`.
+Não é necessário instalar npm, Node.js ou configurar um servidor de base de dados. O servidor HTTP local é importante para garantir que a exportação de imagens funciona: abrir diretamente `index.html` via `file://` pode bloquear pedidos aos ficheiros pelo navegador.
 
-### Como importar o projeto
+## Funcionalidades
 
-1. Descarrega o ZIP fornecido na conversa.
-2. Na página principal do repositório, abre **Add file → Upload files**.
-3. Arrasta **independente-mente-github-pages.zip**, sem extrair.
-4. Confirma **Commit changes** na branch `main`.
-5. Aguarda a ação **Importar Creative Fashion Studio** em **Actions**.
-6. Verifica que aparecem `index.html`, `css/`, `js/`, `assets/`.
+- Editor visual de frente/costas com posicionamento por arrastar, seta do teclado, escala, centrar, repor, Undo/Redo, zoom e guias.
+- Modelos ilustrativos de T-shirt **Regular Fit**, **Oversized** e **Boxy Fit**, em branco, preto, cru e cinzento.
+- Carregamento fiel das duas artes JPEG fornecidas (1556 × 2001 px, sem alterações).
+- Gravação de conceitos no **localStorage** deste navegador; duplicar, editar e eliminar.
+- Showroom com frente/costas e navegação pelos conceitos.
+- Comparação de dois designs.
+- Exportação PNG de frente, costas, composição dupla, story e horizontal; JPEG de frente e dupla; exportação de projeto editável em JSON; importação de projeto.
+- Ficha técnica com função **Imprimir / Guardar como PDF** do navegador.
+- Partilha de conceitos com as artes incluídas na pasta do site, via URL (só funciona noutros dispositivos quando o site está publicado).
+- Interface responsiva e suporte a toque para movimentar a arte.
 
-### Como publicar para PC e iPhone
+## Limitações conhecidas (transparentes)
 
-Em **Settings → Pages → Build and deployment**:
+- Os mockups são **ilustrações vetoriais**, não fotografias, nem simulações 3D. Não substituem uma prova física.
+- As imagens JPEG têm **fundo branco opaco**. Em T-shirts escuras será visível um retângulo. O sistema não remove esse fundo automaticamente para não adulterar as artes.
+- A área conceptual de estampagem não é uma medida confirmada por fornecedor. Os tamanhos não são medidas reais em centímetros.
+- As imagens personalizadas carregadas pelo utilizador persistem apenas na sessão; exporta PNG antes de fechar. A gravação local de projetos mantém as imagens **originais predefinidas**; não contém blobs de imagens personalizadas.
+- A gravação dos conceitos é **local**, não sincroniza entre dispositivos. Faz cópias de segurança em JSON.
+- A exportação PNG é um mockup de apresentação, **não uma arte final de impressão**.
+- Os dois conceitos originais no showroom são **exemplos editáveis**, não produtos à venda.
+- Não existe checkout, pagamento, stock, backend ou autenticação.
+- O carregamento de fontes web depende da Internet; sem Internet são usadas fontes locais de fallback.
 
-- **Source**: Deploy from a branch
-- **Branch**: main
-- **Folder**: / (root)
-- Clica em **Save**.
+## Ficheiros
 
-Depois da primeira publicação, o endereço esperado é:
+```text
+index.html
+css/styles.css
+js/app.js
+assets/artwork/arte-01-original.jpeg
+assets/artwork/arte-02-original.jpeg
+assets/artwork/capa-album-original.jpeg
+README.md
+```
 
-https://didi2003pt-pixel.github.io/Lecas-Merch/
+## Utilização rápida
 
-**O site é público; o código e as imagens originais são acessíveis a quem visitar o repositório.**
+1. **Design Studio** → selecionar silhueta, cor e face.
+2. Selecionar **Arte 01** ou **Arte 02** e arrastar a composição no mockup.
+3. Usar a escala e as ferramentas de alinhamento para ajustar.
+4. Alternar **Frente / Costas** e definir a outra superfície.
+5. **Guardar na coleção** → abrir **Coleção** ou **Apresentação**.
+6. **Exportar** → guardar PNG para mostrar a outras pessoas ou imprimir a ficha técnica em PDF.
 
-### Funcionalidades do estúdio
+## Próximas fases possíveis
 
-- Personalização de frente e costas de T-shirts.
-- Aplicação das duas artes originais, sem as redesenhar.
-- Modelos e cores conceptuais, escala e posicionamento.
-- Projetos guardados no navegador, showroom e apresentação.
-- Exportação PNG/JPEG e projeto editável JSON.
-- Interface adaptada ao computador e ao iPhone.
-
-### O que não está incluído
-
-- O editor guarda os projetos no navegador local, **não sincroniza automaticamente iPhone e PC**.
-- Não há loja, pagamentos, autenticação nem backend.
-- Os mockups são ilustrações, não fotografias nem ficheiros finais para estampagem.
-- Os JPEG são opacos e têm fundo branco.
-
-Guarda frequentemente os projetos em JSON para transferir entre dispositivos e manter cópias de segurança.
-
-## Próximos passos
-
-Depois do primeiro teste em computador e iPhone: melhorar os mockups, confirmar escalas de impressão e decidir se faz sentido implementar sincronização online de projetos.
-
-### Autoria e direitos
-
-As imagens pertencem aos respetivos titulares. Este repositório não atribui licença de reutilização das artes originais a terceiros.
+Fotografias reais de T-shirts, integração com um fornecedor de estampagem, formatos de impressão aprovados, armazenamento remoto de projetos e showroom partilhável com links curtos, antes de implementar e-commerce.
