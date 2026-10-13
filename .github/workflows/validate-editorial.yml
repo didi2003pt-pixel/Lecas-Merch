@@ -21,6 +21,8 @@ jobs:
           node --check js/presentation/editorial.js
       - name: Verificar revisões e HTML autónomo
         run: node tests/editorial-check.cjs
+      - name: Verificar partilha nativa de HTML
+        run: node tests/editorial-share-check.cjs
       - name: Instalar Playwright
         run: npm install --no-save playwright
       - name: Testar percurso no Chrome
