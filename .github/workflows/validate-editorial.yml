@@ -21,3 +21,20 @@ jobs:
           node --check js/presentation/editorial.js
       - name: Verificar revisões e HTML autónomo
         run: node tests/editorial-check.cjs
+      - name: Instalar Playwright
+        run: npm install --no-save playwright
+      - name: Testar percurso no Chrome
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/lecas-http.log 2>&1 &
+          sleep 3
+          node tests/ui-smoke.cjs
+      - name: Guardar screenshots e PDF de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lecas-editorial-smoke
+          path: |
+            /tmp/lecas-v2-desktop.png
+            /tmp/lecas-v2-mobile.png
+            /tmp/lecas-v2-print.pdf
+          if-no-files-found: ignore
