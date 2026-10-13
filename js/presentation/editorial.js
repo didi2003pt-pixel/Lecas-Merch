@@ -139,7 +139,8 @@ h1,h2,h3,p{margin:0}h1{font-weight:300;letter-spacing:-.045em;font-size:clamp(52
       '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">' +
       '<button data-pres="view" style="padding:12px 16px;background:#131313;color:#fff;border:1px solid #131313;cursor:pointer">Ver apresentação</button>' +
       '<button data-pres="download" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Descarregar HTML</button>' +
-      '${canShareFiles ? '<button data-pres="share" disabled style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Partilhar HTML</button>' : ''}<button data-pres="print" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Guardar PDF</button>' +
+      (canShareFiles ? '<button data-pres="share" disabled style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Partilhar HTML</button>' : '') +
+      '<button data-pres="print" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Guardar PDF</button>' +
       '<button data-pres="close" style="padding:12px 16px;background:none;color:#666;border:1px solid #ccc;cursor:pointer">Fechar</button></div></div>';
     document.body.append(dialog);
     dialog.addEventListener('close', () => dialog.remove(), { once:true });
