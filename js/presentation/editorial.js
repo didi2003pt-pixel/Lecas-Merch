@@ -118,5 +118,61 @@ h1,h2,h3,p{margin:0}h1{font-weight:300;letter-spacing:-.045em;font-size:clamp(52
     return `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${title} — Lecas-Merch ${escapeHTML(version)}</title><style>${CSS}</style></head><body><div class="presentation-controls"><span>INDEPENDENTE.MENTE / ${escapeHTML(version)}</span><div class="controls"><a href="#apresentacao">Ver apresentação</a><button type="button" onclick="window.print()">Imprimir / Guardar PDF</button></div></div><main id="apresentacao">${html}</main></body></html>`;
   }
 
-  global.LecasEditorial = Object.freeze({ history, latest, saveRevision, ensureRevision, buildHTML, fileName: key });
+
+  function openUi(project, helpers) {
+    if (!project || !project.id) throw Error('Não foi selecionado um conceito válido.');
+    ensureRevision(project);
+    const versions = history(project.id);
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('aria-label', 'Apresentação editorial do conceito');
+    dialog.style.cssText = 'width:min(570px,calc(100vw - 28px));max-height:90vh;overflow:auto;padding:0;border:1px solid #dedbd4;box-shadow:0 20px 70px #0004;color:#1b1b1b;background:#fbfaf7;font:14px Arial,Helvetica,sans-serif';
+    const versionOptions = versions.map(v => '<option value="' + v.revision + '">Versão ' + String(v.revision).padStart(2,'0') + ' · ' + escapeHTML(date(v.createdAt)) + '</option>').join('');
+    dialog.innerHTML =
+      '<div style="padding:25px 26px;border-bottom:1px solid #e2dfd8">' +
+        '<div style="font-size:10px;letter-spacing:.21em;color:#85827f;margin-bottom:12px">INDEPENDENTE.MENTE / LOOKBOOK</div>' +
+        '<h2 style="font-size:29px;font-weight:400;margin:0 0 10px">' + escapeHTML(project.name) + '</h2>' +
+        '<p style="line-height:1.65;color:#777;margin:0">Gera uma apresentação editorial autónoma de cinco páginas, preservando cada revisão guardada.</p></div>' +
+      '<div style="padding:24px 26px"><label for="lecas-presentation-version" style="display:block;font-size:11px;font-weight:bold;letter-spacing:.14em;margin-bottom:9px">VERSÃO A APRESENTAR</label>' +
+      '<select id="lecas-presentation-version" style="width:100%;padding:12px;background:#fff;border:1px solid #aaa;margin-bottom:18px;font:inherit">' + versionOptions + '</select>' +
+      '<p id="lecas-presentation-status" role="status" aria-live="polite" style="min-height:38px;line-height:1.6;color:#79736f">HTML independente, sem necessidade de ligação à Internet. O PDF utiliza a impressão do navegador.</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">' +
+      '<button data-pres="view" style="padding:12px 16px;background:#131313;color:#fff;border:1px solid #131313;cursor:pointer">Ver apresentação</button>' +
+      '<button data-pres="download" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Descarregar HTML</button>' +
+      '<button data-pres="print" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Guardar PDF</button>' +
+      '<button data-pres="close" style="padding:12px 16px;background:none;color:#666;border:1px solid #ccc;cursor:pointer">Fechar</button></div></div>';
+    document.body.append(dialog);
+    dialog.addEventListener('close', () => dialog.remove(), { once:true });
+    dialog.showModal();
+    dialog.addEventListener('click', async event => {
+      const button = event.target.closest('[data-pres]');
+      if (!button) return;
+      const mode = button.dataset.pres;
+      if (mode === 'close') { dialog.close(); return; }
+      const snapshot = versions.find(v => v.revision === Number(dialog.querySelector('#lecas-presentation-version').value));
+      const status = dialog.querySelector('#lecas-presentation-status');
+      const popup = mode === 'download' ? null : window.open('', '_blank');
+      if (mode !== 'download' && !popup) { status.textContent = 'Permite janelas pop-up neste navegador para visualizar a apresentação.'; return; }
+      if (popup) { popup.document.write('<!doctype html><title>A preparar…</title><p style="font:16px Arial;margin:30px">A preparar apresentação editorial…</p>'); popup.document.close(); }
+      status.textContent = 'A preparar a apresentação…';
+      try {
+        const html = await buildHTML(snapshot, helpers);
+        if (mode === 'download') {
+          const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = key(snapshot); document.body.append(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+          status.textContent = 'HTML descarregado. Pode abrir o ficheiro noutro dispositivo.';
+        } else {
+          popup.document.open(); popup.document.write(html); popup.document.close();
+          if (mode === 'print') setTimeout(() => { try { popup.focus(); popup.print(); } catch (e) { console.warn(e); } }, 700);
+          status.textContent = mode === 'print' ? 'Abriu a apresentação para imprimir ou guardar como PDF.' : 'Apresentação aberta numa nova janela.';
+        }
+      } catch (e) {
+        if (popup && !popup.closed) popup.close();
+        status.textContent = 'Não foi possível gerar o documento: ' + e.message;
+      }
+    });
+  }
+  global.LecasEditorial = Object.freeze({ history, latest, saveRevision, ensureRevision, buildHTML, fileName: key, openUi });
 })(window);
