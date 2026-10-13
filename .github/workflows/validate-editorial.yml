@@ -1,0 +1,23 @@
+name: Validar apresentações Lecas-Merch
+on:
+  push:
+    branches: [feature/editorial-html-v2]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe
+        run: |
+          node --check js/app.js
+          node --check js/presentation/editorial.js
+      - name: Verificar revisões e HTML autónomo
+        run: node tests/editorial-check.cjs
