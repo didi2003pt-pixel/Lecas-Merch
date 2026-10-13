@@ -1,0 +1,50 @@
+name: Importar Creative Fashion Studio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'independente-mente-github-pages.zip'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-merch-studio
+  cancel-in-progress: false
+
+jobs:
+  importar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obter repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar o ZIP
+        run: |
+          test -f independente-mente-github-pages.zip || { echo "O ZIP nao foi encontrado."; exit 1; }
+          unzip -t independente-mente-github-pages.zip
+
+      - name: Extrair o projeto original
+        run: |
+          unzip -oq independente-mente-github-pages.zip -d .
+          test -f index.html
+          test -f js/app.js
+          test -f css/styles.css
+          test -f assets/artwork/arte-01-original.jpeg
+          test -f assets/artwork/arte-02-original.jpeg
+          test -f assets/artwork/capa-album-original.jpeg
+          node --check js/app.js
+          touch .nojekyll
+          rm independente-mente-github-pages.zip
+
+      - name: Guardar ficheiros na branch main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: publicar Creative Fashion Studio e artes originais"
+            git push origin HEAD:main
+          fi
