@@ -123,6 +123,7 @@ h1,h2,h3,p{margin:0}h1{font-weight:300;letter-spacing:-.045em;font-size:clamp(52
     if (!project || !project.id) throw Error('Não foi selecionado um conceito válido.');
     ensureRevision(project);
     const versions = history(project.id);
+    const canShareFiles = typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof File === 'function';
     const dialog = document.createElement('dialog');
     dialog.setAttribute('aria-label', 'Apresentação editorial do conceito');
     dialog.style.cssText = 'width:min(570px,calc(100vw - 28px));max-height:90vh;overflow:auto;padding:0;border:1px solid #dedbd4;box-shadow:0 20px 70px #0004;color:#1b1b1b;background:#fbfaf7;font:14px Arial,Helvetica,sans-serif';
@@ -138,11 +139,41 @@ h1,h2,h3,p{margin:0}h1{font-weight:300;letter-spacing:-.045em;font-size:clamp(52
       '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px">' +
       '<button data-pres="view" style="padding:12px 16px;background:#131313;color:#fff;border:1px solid #131313;cursor:pointer">Ver apresentação</button>' +
       '<button data-pres="download" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Descarregar HTML</button>' +
+      (canShareFiles ? '<button data-pres="share" disabled style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Partilhar HTML</button>' : '') +
       '<button data-pres="print" style="padding:12px 16px;background:#fff;color:#111;border:1px solid #aaa;cursor:pointer">Guardar PDF</button>' +
       '<button data-pres="close" style="padding:12px 16px;background:none;color:#666;border:1px solid #ccc;cursor:pointer">Fechar</button></div></div>';
     document.body.append(dialog);
     dialog.addEventListener('close', () => dialog.remove(), { once:true });
     dialog.showModal();
+    // Build the HTML before the tap: native share requires a synchronous user gesture.
+    let preparedShare = null, preparationId = 0;
+    async function prepareShare() {
+      if (!canShareFiles) return;
+      const token = ++preparationId;
+      preparedShare = null;
+      const shareButton = dialog.querySelector('[data-pres="share"]');
+      const status = dialog.querySelector('#lecas-presentation-status');
+      shareButton.disabled = true;
+      status.textContent = 'A preparar o ficheiro para partilha…';
+      const selected = Number(dialog.querySelector('#lecas-presentation-version').value);
+      const snapshot = versions.find(v => v.revision === selected);
+      try {
+        const html = await buildHTML(snapshot, helpers);
+        const file = new File([html], key(snapshot), { type: 'text/html' });
+        if (token !== preparationId || !dialog.isConnected) return;
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+          status.textContent = 'Este navegador não permite partilhar ficheiros HTML. Usa «Descarregar HTML».';
+          return;
+        }
+        preparedShare = { revision: selected, file };
+        shareButton.disabled = false;
+        status.textContent = 'Apresentação preparada. Podes partilhar o HTML ou descarregá-lo.';
+      } catch (e) {
+        if (token === preparationId && dialog.isConnected) status.textContent = 'Partilha indisponível: ' + e.message;
+      }
+    }
+    dialog.querySelector('#lecas-presentation-version').addEventListener('change', () => { void prepareShare(); });
+    void prepareShare();
     dialog.addEventListener('click', async event => {
       const button = event.target.closest('[data-pres]');
       if (!button) return;
@@ -150,6 +181,20 @@ h1,h2,h3,p{margin:0}h1{font-weight:300;letter-spacing:-.045em;font-size:clamp(52
       if (mode === 'close') { dialog.close(); return; }
       const snapshot = versions.find(v => v.revision === Number(dialog.querySelector('#lecas-presentation-version').value));
       const status = dialog.querySelector('#lecas-presentation-status');
+      if (mode === 'share') {
+        if (!preparedShare || preparedShare.revision !== snapshot?.revision) {
+          status.textContent = 'Aguarda a preparação da apresentação antes de partilhar.';
+          return;
+        }
+        try {
+          // No await before navigator.share: iOS requires a direct user gesture.
+          await navigator.share({ files: [preparedShare.file], title: snapshot.design.name });
+          status.textContent = 'A apresentação foi entregue ao sistema de partilha.';
+        } catch (e) {
+          if (e.name !== 'AbortError') status.textContent = 'A partilha não foi concluída: ' + e.message + '. Podes descarregar o HTML.';
+        }
+        return;
+      }
       const popup = mode === 'download' ? null : window.open('', '_blank');
       if (mode !== 'download' && !popup) { status.textContent = 'Permite janelas pop-up neste navegador para visualizar a apresentação.'; return; }
       if (popup) { popup.document.write('<!doctype html><title>A preparar…</title><p style="font:16px Arial;margin:30px">A preparar apresentação editorial…</p>'); popup.document.close(); }
