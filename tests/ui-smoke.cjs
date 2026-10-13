@@ -1,0 +1,54 @@
+/* Browser smoke test - runs in GitHub Actions with Chrome. */
+const { chromium } = require('playwright');
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
+(async()=>{
+ const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+ const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:900}});
+ const page=await context.newPage(), errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ await page.goto('http://127.0.0.1:8765/',{waitUntil:'networkidle'});
+ await page.locator('[data-action="nav"][data-page="studio"]').first().click();
+ await page.locator('#design-name').fill('Conceito V2 Teste');
+ await page.locator('[data-action="save"]').first().click();
+ const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('lecas-merch-editorial-revisions-v1')||'[]'));
+ assert.equal(state.length,1);
+ assert.equal(state[0].revision,1);
+ await page.locator('[data-action="nav"][data-page="collection"]').first().click();
+ await page.locator('[data-action="editorial"]').first().click();
+ assert.equal(await page.locator('dialog[open]').count(),1);
+ const downloadPromise=page.waitForEvent('download');
+ await page.locator('[data-pres="download"]').click();
+ const download=await downloadPromise;
+ await download.saveAs('/tmp/lecas-v2-editorial.html');
+ const html=fs.readFileSync('/tmp/lecas-v2-editorial.html','utf8');
+ assert.equal((html.match(/<section class="sheet /g)||[]).length,5);
+ assert(html.includes('data:image/png;base64'));
+ assert(html.includes('data:image/jpeg;base64'));
+ const offline=await context.newPage();
+ await offline.goto('file:///tmp/lecas-v2-editorial.html');
+ assert.equal(await offline.locator('.sheet').count(),5);
+ const loaded=await offline.locator('.photo img').evaluateAll(imgs=>imgs.every(i=>i.complete && i.naturalWidth>0));
+ assert(loaded,'Mockup images did not load offline');
+ await offline.screenshot({path:'/tmp/lecas-v2-desktop.png',fullPage:true});
+ await offline.pdf({path:'/tmp/lecas-v2-print.pdf',printBackground:true,preferCSSPageSize:true});
+ try { const info=execFileSync('pdfinfo',['/tmp/lecas-v2-print.pdf'],{encoding:'utf8'}); const m=info.match(/^Pages:\s*(\d+)/m); if(m)assert.equal(Number(m[1]),5,'PDF must have five pages'); }
+ catch(err){ if(err.code==='ENOENT')console.warn('pdfinfo unavailable, page count not checked in this environment');else throw err; }
+ await page.locator('[data-pres="close"]').click();
+ await page.locator('[data-action="nav"][data-page="studio"]').first().click();
+ await page.locator('[data-action="set-art"][data-id="art2"]').first().click();
+ await page.locator('[data-action="save"]').first().click();
+ const histories=await page.evaluate(()=>JSON.parse(localStorage.getItem('lecas-merch-editorial-revisions-v1')));
+ assert.equal(histories.length,2);
+ assert.equal(histories[0].design.front.art,'art1');
+ assert.equal(histories[1].design.front.art,'art2');
+ const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+ const mobilePage=await mobile.newPage();
+ await mobilePage.goto('file:///tmp/lecas-v2-editorial.html');
+ await mobilePage.screenshot({path:'/tmp/lecas-v2-mobile.png',fullPage:true});
+ assert.equal(await mobilePage.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'Mobile horizontal overflow');
+ assert.deepEqual(errors,[]);
+ console.log('Browser passed: save, dialog, offline download, 5-page PDF, immutable revisions, mobile layout.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
